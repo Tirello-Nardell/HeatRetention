@@ -53,6 +53,27 @@ namespace HeatRetention
             api.RegisterBlockBehaviorClass($"{ModId}:BlockHeatRetention", typeof(BlockBehaviorHeatRetention));
 
             api.RegisterBlockEntityBehaviorClass($"{ModId}:HeatRetention", typeof(BlockEntityBehaviorHeatRetention));
+
+            api.Event.MatchesGridRecipe += OnMatchesGridRecipe;
+        }
+
+        // Reject the oakum craft and repair recipes if the player has spread the non-oakum
+        // ingredient across multiple slots. Forces a single-slot stack and removes the ambiguity
+        // about which slot "counts" toward the result.
+        private bool OnMatchesGridRecipe(IPlayer player, GridRecipe recipe, ItemSlot[] ingredients, int gridWidth)
+        {
+            var recipeName = recipe.Name?.ToString();
+            if (recipeName != $"{ModId}:oakum" && recipeName != $"{ModId}:repair") return true;
+
+            int nonOakumSlots = 0;
+            foreach (var slot in ingredients)
+            {
+                if (slot.Empty) continue;
+                if (slot.Itemstack?.Collectible is ItemOakum) continue;
+                nonOakumSlots++;
+                if (nonOakumSlots > 1) return false;
+            }
+            return true;
         }
 
         public override void AssetsFinalize(ICoreAPI api)

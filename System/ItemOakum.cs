@@ -110,6 +110,11 @@ namespace HeatRetention
             foreach (var ingredient in recipe.ResolvedIngredients)
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
+                // For the repair recipe one of the ingredients is the oakum itself; that slot is
+                // skipped on the input side, so the ingredient must be skipped here too — otherwise
+                // its forThisIngredient would clamp createValue to 0 and the repair would always
+                // produce a single durability point regardless of how many fibers were provided.
+                if (ingredient.ResolvedItemStack.Collectible == this) continue;
 
                 int best = 0;
                 foreach (var slot in inSlots)
@@ -129,12 +134,14 @@ namespace HeatRetention
         }
 
         // Consume from the single largest matching slot per ingredient. Other slots that also
-        // contain the ingredient are left alone.
+        // contain the ingredient are left alone. The oakum ingredient (for repair) is handled
+        // separately by ConsumeCraftingIngredients clearing the oakum input slot directly.
         private void ConsumeIngredientFromSlots(ItemSlot[] inSlots, GridRecipe recipe, int createValue)
         {
             foreach (var ingredient in recipe.ResolvedIngredients)
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
+                if (ingredient.ResolvedItemStack.Collectible == this) continue;
 
                 ItemSlot? bestSlot = null;
                 foreach (var slot in inSlots)
