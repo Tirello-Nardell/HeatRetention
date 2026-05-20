@@ -100,9 +100,9 @@ namespace HeatRetention
             return false;
         }
 
-        // Sum the total available stacksize for each recipe ingredient (excluding this item itself),
-        // divide by ingredient.Quantity, and cap at Core.Divider. Yields how many "units" the player
-        // can craft from what's in the grid, with fibers spread across slots counted together.
+        // Pick the largest single matching stack per ingredient. Smaller stacks of the same
+        // ingredient in other slots are ignored (not credited, not consumed) so spreading fibers
+        // across slots is harmless rather than wasteful.
         private void CalculateCreateValue(ItemSlot[] inSlots, GridRecipe recipe, out int createValue)
         {
             createValue = int.MaxValue;
@@ -111,16 +111,16 @@ namespace HeatRetention
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
 
-                int total = 0;
+                int best = 0;
                 foreach (var slot in inSlots)
                 {
                     if (slot.Empty) continue;
                     if (slot.Itemstack.Collectible == this) continue;
-                    if (SlotMatches(slot, ingredient)) total += slot.StackSize;
+                    if (SlotMatches(slot, ingredient) && slot.StackSize > best) best = slot.StackSize;
                 }
 
                 int qty = Math.Max(1, ingredient.Quantity);
-                int forThisIngredient = total / qty;
+                int forThisIngredient = best / qty;
                 if (forThisIngredient < createValue) createValue = forThisIngredient;
             }
 
@@ -128,27 +128,27 @@ namespace HeatRetention
             if (Core.Divider > 0 && Core.Divider < createValue) createValue = Core.Divider;
         }
 
-        // Greedy consumption across all slots matching each ingredient until createValue * Quantity
-        // has been drained per ingredient. Leftover non-recipe items in the grid are left untouched.
+        // Consume from the single largest matching slot per ingredient. Other slots that also
+        // contain the ingredient are left alone.
         private void ConsumeIngredientFromSlots(ItemSlot[] inSlots, GridRecipe recipe, int createValue)
         {
             foreach (var ingredient in recipe.ResolvedIngredients)
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
 
-                int remaining = createValue * Math.Max(1, ingredient.Quantity);
+                ItemSlot? bestSlot = null;
                 foreach (var slot in inSlots)
                 {
-                    if (remaining <= 0) break;
                     if (slot.Empty) continue;
                     if (slot.Itemstack.Collectible == this) continue;
                     if (!SlotMatches(slot, ingredient)) continue;
-
-                    int take = Math.Min(remaining, slot.StackSize);
-                    slot.TakeOut(take);
-                    slot.MarkDirty();
-                    remaining -= take;
+                    if (bestSlot == null || slot.StackSize > bestSlot.StackSize) bestSlot = slot;
                 }
+
+                if (bestSlot == null) continue;
+                int take = Math.Min(createValue * Math.Max(1, ingredient.Quantity), bestSlot.StackSize);
+                bestSlot.TakeOut(take);
+                bestSlot.MarkDirty();
             }
         }
 
