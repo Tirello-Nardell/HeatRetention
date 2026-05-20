@@ -70,6 +70,21 @@ namespace HeatRetention
                 outputSlot.Itemstack.Attributes.SetInt("durability", Math.Min(maxDur, (int)(curDur + maxDur / Core.Divider * createValue)));
 
             }
+
+            if (IsCombine(recipe))
+            {
+                int sum = 0;
+                foreach (var slot in inSlots)
+                {
+                    if (slot.Empty) continue;
+                    if (slot.Itemstack.Collectible is ItemOakum)
+                    {
+                        sum += slot.Itemstack.Collectible.GetRemainingDurability(slot.Itemstack);
+                    }
+                }
+                int maxDur = GetMaxDurability(outputSlot.Itemstack);
+                outputSlot.Itemstack.Attributes.SetInt("durability", Math.Min(maxDur, sum));
+            }
         }
 
         public override bool ConsumeCraftingIngredients(ItemSlot[] inSlots, ItemSlot outputSlot, IRecipeBase matchingRecipe)
@@ -79,6 +94,15 @@ namespace HeatRetention
             {
                 CalculateCreateValue(inSlots, recipe, out int createValue);
                 ConsumeIngredientFromSlots(inSlots, recipe, createValue);
+                return true;
+            }
+
+            if (IsCombine(recipe))
+            {
+                foreach (var slot in inSlots)
+                {
+                    if (slot.Itemstack?.Collectible is ItemOakum) slot.Itemstack = null;
+                }
                 return true;
             }
 
@@ -185,6 +209,11 @@ namespace HeatRetention
         private static bool IsCreate(GridRecipe recipe)
         {
             return recipe.Name.ToString() == ($"{Core.ModId}:oakum");
+        }
+
+        private static bool IsCombine(GridRecipe recipe)
+        {
+            return recipe.Name.ToString() == ($"{Core.ModId}:combine");
         }
     }
 }

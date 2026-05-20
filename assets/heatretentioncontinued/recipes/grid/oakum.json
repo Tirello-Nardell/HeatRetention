@@ -25,5 +25,19 @@
 		"averageDurability": false,
 		"name": "repair",
 		"output": { "type": "item", "code": "oakum" }
+	},
+
+	{
+		"ingredientPattern": "O,O",
+		"recipeGroup": 3,
+		"ingredients": {
+			"O": { "type": "item", "code": "oakum" }
+		},
+		"width": 1,
+		"height": 2,
+		"shapeless": true,
+		"averageDurability": false,
+		"name": "combine",
+		"output": { "type": "item", "code": "oakum" }
 	}
 ]
