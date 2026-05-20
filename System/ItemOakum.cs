@@ -19,11 +19,11 @@ namespace HeatRetention
         public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel,
             bool firstEvent, ref EnumHandHandling handling)
         {
-            if (blockSel != null && api.World.BlockAccessor.GetBlock(blockSel.Position) is BlockChisel &&
-                api.World.BlockAccessor.GetBlockEntity(blockSel.Position)
-                .GetBehavior<BlockEntityBehaviorHeatRetention>().IsActivate())
+            if (blockSel != null &&
+                api.World.BlockAccessor.GetBlock(blockSel.Position) is BlockChisel &&
+                api.World.BlockAccessor.GetBlockEntity(blockSel.Position)?.GetBehavior<BlockEntityBehaviorHeatRetention>()?.IsActivate() == true)
             {
-                if ((byEntity as EntityPlayer)?.Player.WorldData.CurrentGameMode != EnumGameMode.Creative)
+                if ((byEntity as EntityPlayer)?.Player?.WorldData?.CurrentGameMode != EnumGameMode.Creative)
                 {
                     DamageItem(api.World, byEntity, slot, ModConfigFile.Current.CostPerBlock);
                 }
@@ -48,42 +48,36 @@ namespace HeatRetention
             if (outputSlot is DummySlot) return;
             if (byRecipe is not GridRecipe recipe) return;
 
+            var stack = outputSlot.Itemstack;
+            if (stack == null) return;
+
+            int maxDur = GetMaxDurability(stack);
+            int divider = Math.Max(1, Core.Divider);
+
             if (IsCreate(recipe))
             {
                 CalculateCreateValue(inSlots, recipe, out int createValue);
-
-                int maxDur = GetMaxDurability(outputSlot.Itemstack);
-
-                outputSlot.Itemstack.Attributes.SetInt("durability", maxDur / Core.Divider * createValue);
-
+                stack.Attributes.SetInt("durability", maxDur / divider * createValue);
             }
-
-            if (IsRepair(recipe))
+            else if (IsRepair(recipe))
             {
-                int curDur = outputSlot.Itemstack.Collectible.GetRemainingDurability(outputSlot.Itemstack);
-                int maxDur = GetMaxDurability(outputSlot.Itemstack);
-
+                int curDur = stack.Collectible.GetRemainingDurability(stack);
                 CalculateCreateValue(inSlots, recipe, out int createValue);
-
-                createValue = (int)Math.Min((1 - (float)curDur /maxDur) * Core.Divider, createValue);
-
-                outputSlot.Itemstack.Attributes.SetInt("durability", Math.Min(maxDur, (int)(curDur + maxDur / Core.Divider * createValue)));
-
+                createValue = (int)Math.Min((1 - (float)curDur / maxDur) * divider, createValue);
+                stack.Attributes.SetInt("durability", Math.Min(maxDur, (int)(curDur + maxDur / divider * createValue)));
             }
-
-            if (IsCombine(recipe))
+            else if (IsCombine(recipe))
             {
                 int sum = 0;
                 foreach (var slot in inSlots)
                 {
                     if (slot.Empty) continue;
-                    if (slot.Itemstack.Collectible is ItemOakum)
+                    if (slot.Itemstack!.Collectible is ItemOakum)
                     {
                         sum += slot.Itemstack.Collectible.GetRemainingDurability(slot.Itemstack);
                     }
                 }
-                int maxDur = GetMaxDurability(outputSlot.Itemstack);
-                outputSlot.Itemstack.Attributes.SetInt("durability", Math.Min(maxDur, sum));
+                stack.Attributes.SetInt("durability", Math.Min(maxDur, sum));
             }
         }
 
@@ -130,8 +124,10 @@ namespace HeatRetention
         private void CalculateCreateValue(ItemSlot[] inSlots, GridRecipe recipe, out int createValue)
         {
             createValue = int.MaxValue;
+            var resolved = recipe.ResolvedIngredients;
+            if (resolved == null) { createValue = 1; return; }
 
-            foreach (var ingredient in recipe.ResolvedIngredients)
+            foreach (var ingredient in resolved)
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
                 // For the repair recipe one of the ingredients is the oakum itself; that slot is
@@ -144,7 +140,7 @@ namespace HeatRetention
                 foreach (var slot in inSlots)
                 {
                     if (slot.Empty) continue;
-                    if (slot.Itemstack.Collectible == this) continue;
+                    if (slot.Itemstack!.Collectible == this) continue;
                     if (SlotMatches(slot, ingredient) && slot.StackSize > best) best = slot.StackSize;
                 }
 
@@ -162,7 +158,10 @@ namespace HeatRetention
         // separately by ConsumeCraftingIngredients clearing the oakum input slot directly.
         private void ConsumeIngredientFromSlots(ItemSlot[] inSlots, GridRecipe recipe, int createValue)
         {
-            foreach (var ingredient in recipe.ResolvedIngredients)
+            var resolved = recipe.ResolvedIngredients;
+            if (resolved == null) return;
+
+            foreach (var ingredient in resolved)
             {
                 if (ingredient?.ResolvedItemStack == null) continue;
                 if (ingredient.ResolvedItemStack.Collectible == this) continue;
@@ -171,7 +170,7 @@ namespace HeatRetention
                 foreach (var slot in inSlots)
                 {
                     if (slot.Empty) continue;
-                    if (slot.Itemstack.Collectible == this) continue;
+                    if (slot.Itemstack!.Collectible == this) continue;
                     if (!SlotMatches(slot, ingredient)) continue;
                     if (bestSlot == null || slot.StackSize > bestSlot.StackSize) bestSlot = slot;
                 }
@@ -187,6 +186,7 @@ namespace HeatRetention
         {
             var slotStack = slot.Itemstack;
             var ingStack = ingredient.ResolvedItemStack;
+            if (slotStack?.Collectible == null || ingStack?.Collectible == null) return false;
             return slotStack.Class == ingStack.Class && slotStack.Collectible.Id == ingStack.Collectible.Id;
         }
 
@@ -194,26 +194,19 @@ namespace HeatRetention
         {
             CalculateCreateValue(inSlots, recipe, out int createValue);
 
+            var stack = outputSlot.Itemstack;
+            if (stack == null) { repairValue = createValue; return; }
+
             var oakumSlot = inSlots.FirstOrDefault(slot => slot.Itemstack?.Collectible is ItemOakum);
-            int curDur = outputSlot.Itemstack.Collectible.GetRemainingDurability(oakumSlot?.Itemstack);
-            int maxDur = GetMaxDurability(outputSlot.Itemstack);
+            int curDur = stack.Collectible.GetRemainingDurability(oakumSlot?.Itemstack ?? stack);
+            int maxDur = GetMaxDurability(stack);
+            int divider = Math.Max(1, Core.Divider);
 
-            repairValue = (int)Math.Min((1 - (float)curDur / maxDur) * Core.Divider, createValue);
+            repairValue = (int)Math.Min((1 - (float)curDur / maxDur) * divider, createValue);
         }
 
-        private static bool IsRepair(GridRecipe recipe)
-        {
-            return recipe.Name.ToString() == ($"{Core.ModId}:repair");
-        }
-
-        private static bool IsCreate(GridRecipe recipe)
-        {
-            return recipe.Name.ToString() == ($"{Core.ModId}:oakum");
-        }
-
-        private static bool IsCombine(GridRecipe recipe)
-        {
-            return recipe.Name.ToString() == ($"{Core.ModId}:combine");
-        }
+        private static bool IsRepair(GridRecipe recipe) => recipe.Name?.ToString() == $"{Core.ModId}:repair";
+        private static bool IsCreate(GridRecipe recipe) => recipe.Name?.ToString() == $"{Core.ModId}:oakum";
+        private static bool IsCombine(GridRecipe recipe) => recipe.Name?.ToString() == $"{Core.ModId}:combine";
     }
 }

@@ -105,61 +105,62 @@ namespace HeatRetention
         {
             foreach (var grecipe in api.World.GridRecipes)
             {
-                if (grecipe.Name.ToString() != ($"{ModId}:oakum")) continue;
+                if (grecipe.Name?.ToString() != $"{ModId}:oakum") continue;
+
+                var resolved = grecipe.ResolvedIngredients;
+                if (resolved == null) continue;
+
+                if (resolved.Length > 1)
                 {
-                    int count = grecipe.Ingredients.Count;
-                    if (count > 1)
+                    HashSet<int> quantities = new();
+                    foreach (var ingredient in resolved)
                     {
-                        HashSet<int> quantities = new();
-                        foreach (var ingredient in grecipe.ResolvedIngredients)
-                        {
-                            quantities.Add(ingredient.Quantity);
-                        }
-
-                        Divider = GCD(quantities.ToArray());
-
-                        foreach (var ingredient in grecipe.ResolvedIngredients)
-                        {
-                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity /= Divider;
-                        }
+                        if (ingredient != null) quantities.Add(ingredient.Quantity);
                     }
-                    else
+
+                    Divider = GCD(quantities.ToArray());
+
+                    foreach (var ingredient in resolved)
                     {
-                        Divider = grecipe.ResolvedIngredients[0].Quantity;
-                        grecipe.ResolvedIngredients[0].ResolvedItemStack.StackSize = grecipe.ResolvedIngredients[0].Quantity = 1;
+                        if (ingredient?.ResolvedItemStack == null) continue;
+                        ingredient.ResolvedItemStack.StackSize = ingredient.Quantity /= Divider;
                     }
-                   return grecipe;
                 }
+                else if (resolved.Length == 1 && resolved[0]?.ResolvedItemStack != null)
+                {
+                    var first = resolved[0]!;
+                    Divider = first.Quantity;
+                    first.ResolvedItemStack!.StackSize = first.Quantity = 1;
+                }
+                return grecipe;
             }
             throw new System.NotSupportedException($"[{ModId}] Craft recipe not found");
         }
 
+        // The 1.20.4+ API nulls out GridRecipe.Ingredients on the server after recipe resolving,
+        // so we use ResolvedIngredients here. Both views reference the same CraftingRecipeIngredient
+        // instances, so updating the array updates what the matcher sees too.
         private static void RepairRecipe(ICoreAPI api, GridRecipe currentCraftRecipe)
         {
+            var craftIngredients = currentCraftRecipe.ResolvedIngredients;
+            if (craftIngredients == null) return;
+
             foreach (var grecipe in api.World.GridRecipes)
             {
-                if (grecipe.Name.ToString() != ($"{ModId}:repair")) continue;
-                {
-                    foreach (var ingredient in grecipe.ResolvedIngredients)
-                    {
-                        if (ingredient.Code.ToString() == $"{ModId}:oakum") { continue; }
-                        var hash = ingredient.ResolvedItemStack.Id;
-                        foreach(var ing in currentCraftRecipe.ResolvedIngredients)
-                        {
-                            if(ing.ResolvedItemStack.Id != hash) { continue; }
-                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity = ing.Quantity;
-                        }
-                    }
+                if (grecipe.Name?.ToString() != $"{ModId}:repair") continue;
+                if (grecipe.ResolvedIngredients == null) continue;
 
-                    foreach (var(_, ingredient) in grecipe.Ingredients)
+                foreach (var ingredient in grecipe.ResolvedIngredients)
+                {
+                    if (ingredient?.ResolvedItemStack == null) continue;
+                    if (ingredient.Code?.ToString() == $"{ModId}:oakum") continue;
+
+                    int hash = ingredient.ResolvedItemStack.Id;
+                    foreach (var ing in craftIngredients)
                     {
-                        if (ingredient.Code.ToString() == $"{ModId}:oakum") { continue; }
-                        var hash = ingredient.ResolvedItemStack.Id;
-                        foreach (var ing in currentCraftRecipe.ResolvedIngredients)
-                        {
-                            if (ing.ResolvedItemStack.Id != hash) { continue; }
-                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity = ing.Quantity;
-                        }
+                        if (ing?.ResolvedItemStack == null) continue;
+                        if (ing.ResolvedItemStack.Id != hash) continue;
+                        ingredient.ResolvedItemStack.StackSize = ingredient.Quantity = ing.Quantity;
                     }
                 }
             }
