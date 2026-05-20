@@ -35,7 +35,6 @@
 		},
 		"width": 1,
 		"height": 2,
-		"shapeless": true,
 		"averageDurability": false,
 		"name": "combine",
 		"output": { "type": "item", "code": "oakum" }
