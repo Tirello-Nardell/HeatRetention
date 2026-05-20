@@ -1,28 +1,51 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFramework>net7</TargetFramework>
-		<EnableNETAnalyzers>true</EnableNETAnalyzers>
-		<LangVersion>latest</LangVersion>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
-
-	<!-- Warning settings -->
-	<PropertyGroup>
-		<WarningLevel>4</WarningLevel>
-		<!-- Disable Missing XML comment for publicly visible type or member -->
-		<NoWarn>CS1591</NoWarn>
-	</PropertyGroup>
-	<ItemGroup>
-	  <None Remove="Assets\heatretention\recipes\oakum.json" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Nullable" Version="1.3.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Assets\heatretention\lang\" />
-		<Folder Include="Mods\" />
-		<Folder Include="Releases\" />
-	</ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AssemblyName>heatretentioncontinued</AssemblyName>
+    <RootNamespace>HeatRetention</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>.\bin\Debug\Mods\mod</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>.\bin\Release\Mods\mod</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="VintagestoryAPI">
+      <HintPath>$(VINTAGE_STORY)\VintagestoryAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VintagestoryLib">
+      <HintPath>$(VINTAGE_STORY)\VintagestoryLib.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VSSurvivalMod">
+      <HintPath>$(VINTAGE_STORY)\Mods\VSSurvivalMod.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VSEssentials">
+      <HintPath>$(VINTAGE_STORY)\Mods\VSEssentials.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="protobuf-net">
+      <HintPath>$(VINTAGE_STORY)\Lib\protobuf-net.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="modinfo.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="modicon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

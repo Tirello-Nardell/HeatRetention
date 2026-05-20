@@ -40,12 +40,13 @@ namespace HeatRetention
             return base.GetHandBookStacks(capi);
         }
 
-        public override void OnCreatedByCrafting(ItemSlot[] inSlots, ItemSlot outputSlot, GridRecipe recipe)
+        public override void OnCreatedByCrafting(ItemSlot[] inSlots, ItemSlot outputSlot, IRecipeBase byRecipe)
         {
-            base.OnCreatedByCrafting(inSlots, outputSlot, recipe);
+            base.OnCreatedByCrafting(inSlots, outputSlot, byRecipe);
 
             // Prevent derp in the handbook
             if (outputSlot is DummySlot) return;
+            if (byRecipe is not GridRecipe recipe) return;
 
             if (IsCreate(recipe))
             {
@@ -71,8 +72,9 @@ namespace HeatRetention
             }
         }
 
-        public override bool ConsumeCraftingIngredients(ItemSlot[] inSlots, ItemSlot outputSlot, GridRecipe recipe)
+        public override bool ConsumeCraftingIngredients(ItemSlot[] inSlots, ItemSlot outputSlot, IRecipeBase matchingRecipe)
         {
+            if (matchingRecipe is not GridRecipe recipe) return false;
             if (IsCreate(recipe))
             {
                 CalculateCreateValue(inSlots, recipe, out int createValue);
@@ -83,9 +85,9 @@ namespace HeatRetention
 
                     var hash = slot.Itemstack.GetHashCode();
 
-                    foreach (var ingredient in recipe.resolvedIngredients)
+                    foreach (var ingredient in recipe.ResolvedIngredients)
                     {
-                        if (ingredient.ResolvedItemstack.Id != hash) continue;
+                        if (ingredient.ResolvedItemStack.Id != hash) continue;
                         slot.TakeOut(createValue * ingredient.Quantity);
                     }
                 }
@@ -106,9 +108,9 @@ namespace HeatRetention
 
                     var hash = slot.Itemstack.GetHashCode();
 
-                    foreach (var ingredient in recipe.resolvedIngredients)
+                    foreach (var ingredient in recipe.ResolvedIngredients)
                     {
-                        if (ingredient.ResolvedItemstack.Id != hash) continue;
+                        if (ingredient.ResolvedItemStack.Id != hash) continue;
                         slot.TakeOut(repairValue * ingredient.Quantity);
                     }
                 }
@@ -131,9 +133,9 @@ namespace HeatRetention
                 if (slot.Itemstack.Collectible == this) continue;
 
                 var hash = slot.Itemstack.GetHashCode();
-                foreach (var ingredient in recipe.resolvedIngredients)
+                foreach (var ingredient in recipe.ResolvedIngredients)
                 {
-                    if (ingredient.ResolvedItemstack.Id != hash) continue;
+                    if (ingredient.ResolvedItemStack.Id != hash) continue;
                     var _ = slot.StackSize / ingredient.Quantity;
                     if (_ < createValue)
                     {

@@ -1,14 +1,4 @@
-# Visual Studio
-.cr
-.vs
-bin
-obj
-*.sln
+bin/
+obj/
+.vs/
 *.user
-
-# Mod Builder
-/[Mm]ods
-/[Rr]eleases
-
-# Other
-/[Ii]gnore

@@ -1,6 +1,6 @@
 {
 	"code": "oakum",
-	"class": "heatretention:ItemOakum",
+	"class": "heatretentioncontinued:ItemOakum",
 	"shape": { "base": "item/oakum" },
 	"creativeinventory": { "general": ["*"], "items": ["*"]},
 	"drawtype": "json",

@@ -90,22 +90,22 @@ namespace HeatRetention
                     if (count > 1)
                     {
                         HashSet<int> quantities = new();
-                        foreach (var ingredient in grecipe.resolvedIngredients)
+                        foreach (var ingredient in grecipe.ResolvedIngredients)
                         {
                             quantities.Add(ingredient.Quantity);
                         }
 
                         Divider = GCD(quantities.ToArray());
 
-                        foreach (var ingredient in grecipe.resolvedIngredients)
+                        foreach (var ingredient in grecipe.ResolvedIngredients)
                         {
-                            ingredient.ResolvedItemstack.StackSize = ingredient.Quantity /= Divider;
+                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity /= Divider;
                         }
                     }
                     else
                     {
-                        Divider = grecipe.resolvedIngredients[0].Quantity;
-                        grecipe.resolvedIngredients[0].ResolvedItemstack.StackSize = grecipe.resolvedIngredients[0].Quantity = 1;
+                        Divider = grecipe.ResolvedIngredients[0].Quantity;
+                        grecipe.ResolvedIngredients[0].ResolvedItemStack.StackSize = grecipe.ResolvedIngredients[0].Quantity = 1;
                     }
                    return grecipe;
                 }
@@ -119,25 +119,25 @@ namespace HeatRetention
             {
                 if (grecipe.Name.ToString() != ($"{ModId}:repair")) continue;
                 {
-                    foreach (var ingredient in grecipe.resolvedIngredients)
+                    foreach (var ingredient in grecipe.ResolvedIngredients)
                     {
                         if (ingredient.Code.ToString() == $"{ModId}:oakum") { continue; }
-                        var hash = ingredient.ResolvedItemstack.Id;
-                        foreach(var ing in currentCraftRecipe.resolvedIngredients)
+                        var hash = ingredient.ResolvedItemStack.Id;
+                        foreach(var ing in currentCraftRecipe.ResolvedIngredients)
                         {
-                            if(ing.ResolvedItemstack.Id != hash) { continue; }
-                            ingredient.ResolvedItemstack.StackSize = ingredient.Quantity = ing.Quantity;
+                            if(ing.ResolvedItemStack.Id != hash) { continue; }
+                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity = ing.Quantity;
                         }
                     }
 
                     foreach (var(_, ingredient) in grecipe.Ingredients)
                     {
                         if (ingredient.Code.ToString() == $"{ModId}:oakum") { continue; }
-                        var hash = ingredient.ResolvedItemstack.Id;
-                        foreach (var ing in currentCraftRecipe.resolvedIngredients)
+                        var hash = ingredient.ResolvedItemStack.Id;
+                        foreach (var ing in currentCraftRecipe.ResolvedIngredients)
                         {
-                            if (ing.ResolvedItemstack.Id != hash) { continue; }
-                            ingredient.ResolvedItemstack.StackSize = ingredient.Quantity = ing.Quantity;
+                            if (ing.ResolvedItemStack.Id != hash) { continue; }
+                            ingredient.ResolvedItemStack.StackSize = ingredient.Quantity = ing.Quantity;
                         }
                     }
                 }

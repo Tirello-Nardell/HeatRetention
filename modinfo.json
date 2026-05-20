@@ -1,0 +1,14 @@
+{
+  "type": "code",
+  "modid": "heatretentioncontinued",
+  "name": "Heat Retention Continued",
+  "authors": [ "Tirello" ],
+  "contributors": [ "Svarozhich" ],
+  "description": "A continuation of Svarozhich's Heat Retention, ported to Vintage Story 1.22. Apply oakum to chiseled blocks to seal drafts and protect room heating.",
+  "side": "universal",
+  "version": "1.0.3",
+  "dependencies": {
+    "game": "1.22.0",
+    "survival": "1.22.0"
+  }
+}
