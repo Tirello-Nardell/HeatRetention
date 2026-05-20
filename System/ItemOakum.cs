@@ -23,7 +23,8 @@ namespace HeatRetention
                 api.World.BlockAccessor.GetBlock(blockSel.Position) is BlockChisel &&
                 api.World.BlockAccessor.GetBlockEntity(blockSel.Position)?.GetBehavior<BlockEntityBehaviorHeatRetention>()?.IsActivate() == true)
             {
-                if ((byEntity as EntityPlayer)?.Player?.WorldData?.CurrentGameMode != EnumGameMode.Creative)
+                if (api.Side == EnumAppSide.Server &&
+                    (byEntity as EntityPlayer)?.Player?.WorldData?.CurrentGameMode != EnumGameMode.Creative)
                 {
                     DamageItem(api.World, byEntity, slot, ModConfigFile.Current.CostPerBlock);
                 }

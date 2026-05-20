@@ -17,7 +17,10 @@ namespace HeatRetention
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
         {
             base.FromTreeAttributes(tree, worldAccessForResolve);
-            IsInsulated = tree.GetBool($"{Core.ModId}:insulated");
+            // Read both keys so worlds saved under the original "heatretention:" modid still
+            // recognize their insulated blocks after migrating to the continuation. The next
+            // save writes only the new key, so the legacy entry self-migrates on first load.
+            IsInsulated = tree.GetBool($"{Core.ModId}:insulated") || tree.GetBool("heatretention:insulated");
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)
