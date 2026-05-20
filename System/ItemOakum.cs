@@ -78,20 +78,7 @@ namespace HeatRetention
             if (IsCreate(recipe))
             {
                 CalculateCreateValue(inSlots, recipe, out int createValue);
-
-                foreach (var slot in inSlots)
-                {
-                    if (slot.Itemstack == null) continue;
-
-                    var hash = slot.Itemstack.GetHashCode();
-
-                    foreach (var ingredient in recipe.ResolvedIngredients)
-                    {
-                        if (ingredient.ResolvedItemStack.Id != hash) continue;
-                        slot.TakeOut(createValue * ingredient.Quantity);
-                    }
-                }
-
+                ConsumeIngredientFromSlots(inSlots, recipe, createValue);
                 return true;
             }
 
@@ -103,53 +90,73 @@ namespace HeatRetention
                 foreach (var slot in inSlots)
                 {
                     if (slot.Itemstack == null) continue;
-
                     if (slot.Itemstack.Collectible == this) { slot.Itemstack = null; continue; }
-
-                    var hash = slot.Itemstack.GetHashCode();
-
-                    foreach (var ingredient in recipe.ResolvedIngredients)
-                    {
-                        if (ingredient.ResolvedItemStack.Id != hash) continue;
-                        slot.TakeOut(repairValue * ingredient.Quantity);
-                    }
                 }
 
+                ConsumeIngredientFromSlots(inSlots, recipe, repairValue);
                 return true;
             }
 
             return false;
         }
 
+        // Sum the total available stacksize for each recipe ingredient (excluding this item itself),
+        // divide by ingredient.Quantity, and cap at Core.Divider. Yields how many "units" the player
+        // can craft from what's in the grid, with fibers spread across slots counted together.
         private void CalculateCreateValue(ItemSlot[] inSlots, GridRecipe recipe, out int createValue)
         {
             createValue = int.MaxValue;
 
-
-            foreach (var slot in inSlots)
+            foreach (var ingredient in recipe.ResolvedIngredients)
             {
-                if (slot.Empty) continue;
+                if (ingredient?.ResolvedItemStack == null) continue;
 
-                if (slot.Itemstack.Collectible == this) continue;
-
-                var hash = slot.Itemstack.GetHashCode();
-                foreach (var ingredient in recipe.ResolvedIngredients)
+                int total = 0;
+                foreach (var slot in inSlots)
                 {
-                    if (ingredient.ResolvedItemStack.Id != hash) continue;
-                    var _ = slot.StackSize / ingredient.Quantity;
-                    if (_ < createValue)
-                    {
-                        createValue = _;
-                    }
+                    if (slot.Empty) continue;
+                    if (slot.Itemstack.Collectible == this) continue;
+                    if (SlotMatches(slot, ingredient)) total += slot.StackSize;
+                }
+
+                int qty = Math.Max(1, ingredient.Quantity);
+                int forThisIngredient = total / qty;
+                if (forThisIngredient < createValue) createValue = forThisIngredient;
+            }
+
+            if (createValue == int.MaxValue || createValue <= 0) createValue = 1;
+            if (Core.Divider > 0 && Core.Divider < createValue) createValue = Core.Divider;
+        }
+
+        // Greedy consumption across all slots matching each ingredient until createValue * Quantity
+        // has been drained per ingredient. Leftover non-recipe items in the grid are left untouched.
+        private void ConsumeIngredientFromSlots(ItemSlot[] inSlots, GridRecipe recipe, int createValue)
+        {
+            foreach (var ingredient in recipe.ResolvedIngredients)
+            {
+                if (ingredient?.ResolvedItemStack == null) continue;
+
+                int remaining = createValue * Math.Max(1, ingredient.Quantity);
+                foreach (var slot in inSlots)
+                {
+                    if (remaining <= 0) break;
+                    if (slot.Empty) continue;
+                    if (slot.Itemstack.Collectible == this) continue;
+                    if (!SlotMatches(slot, ingredient)) continue;
+
+                    int take = Math.Min(remaining, slot.StackSize);
+                    slot.TakeOut(take);
+                    slot.MarkDirty();
+                    remaining -= take;
                 }
             }
+        }
 
-            if (createValue == int.MaxValue)
-            {
-                createValue = 1;
-            }
-            if (Core.Divider < createValue) { createValue = Core.Divider; }
-
+        private static bool SlotMatches(ItemSlot slot, CraftingRecipeIngredient ingredient)
+        {
+            var slotStack = slot.Itemstack;
+            var ingStack = ingredient.ResolvedItemStack;
+            return slotStack.Class == ingStack.Class && slotStack.Collectible.Id == ingStack.Collectible.Id;
         }
 
         private void CalculateRepairValue(ItemSlot[] inSlots, ItemSlot outputSlot, GridRecipe recipe, out int repairValue)
